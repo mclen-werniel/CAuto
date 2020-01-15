@@ -1,0 +1,35 @@
+#!/bin/sh
+
+SC_VERSION="0.0.6.15";
+HOSTNAME=`hostname`;
+EMAIL_FROM="clamav@$HOSTNAME";
+EMAIL_MSG="ClamAV AutoScan $SC_VERSION";
+EMAIL_TO="youremail";
+DIR_TO_SCAN="/home";
+LOG_FILE_LOCATION="/var/log/clamav"
+LOG_FILE="$LOG_FILE_LOCATION/scan.report-$(date +'%b-%d-%Y_%H-%M-%S').log";
+
+if [ ! -d "$LOG_FILE_LOCATION" ]; then
+		mkdir "$LOG_FILE_LOCATION";
+
+		if [ ! -f "$LOG_FILE" ]; then
+				touch "$LOG_FILE"
+		fi
+fi		
+
+echo -e "======================================================" > "$LOG_FILE";
+
+# Check for Virus DB Update
+echo -e 'Checking for ClamAV database update' >> $LOG_FILE;
+/usr/bin/freshclam --quiet;
+
+echo -e "Scanning $DIR_TO_SCAN" >> "$LOG_FILE";
+
+/usr/bin/clamscan --infected --recursive "$DIR_TO_SCAN" &> "$LOG_FILE";
+
+echo -e "========================DONE=========================" >> "$LOG_FILE";
+
+#email the sys admin
+echo "$(cat $LOG_FILE)"|mail -s "Antivirus scan report $HOSTNAME"  -r "$EMAIL_MSG <$EMAIL_FROM>" "$EMAIL_TO";
+
+exit 0
